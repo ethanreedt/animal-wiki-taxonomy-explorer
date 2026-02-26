@@ -18,7 +18,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   FRONTEND_IMAGE: ghcr.io/${{ github.repository }}-frontend
-  BACXEND_IMAGE: ghcr.io/${{ github.repository }}-backend
+  BACKEND_IMAGE: ghcr.io/${{ github.repository }}-backend
 
 jobs:
   detect-changes:
@@ -68,7 +68,7 @@ jobs:
 
   build-backend:
     needs: detect-changes
-    if: needs.detect-changes.outputs.frontend == 'true'
+    if: needs.detect-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
         - uses: actions/checkout@v4
