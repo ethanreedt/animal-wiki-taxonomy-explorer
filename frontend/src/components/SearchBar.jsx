@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { apiGet } from "../api.js";
 
-export default function SearchBar({ maxResults = 4, onSelect, className = "" }) {
+export default function SearchBar({ maxResults = 4, onSelect, compact = false, className = "" }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -104,7 +104,7 @@ export default function SearchBar({ maxResults = 4, onSelect, className = "" }) 
           onFocus={() => results.length > 0 && setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder="Search animals, plants, fungi..."
-          className="w-full rounded-2xl border border-gray-200 bg-white py-4 pl-12 pr-4 text-lg shadow-sm outline-none transition-shadow focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
+          className={`w-full rounded-2xl border border-gray-200 bg-white pl-12 pr-4 shadow-sm outline-none transition-shadow focus:border-primary-400 focus:ring-2 focus:ring-primary-200 ${compact ? "py-2.5 text-sm" : "py-4 text-lg"}`}
         />
         {loading && (
           <div className="absolute right-4 top-1/2 -translate-y-1/2">

@@ -7,15 +7,23 @@ import TaxonCard from "../components/TaxonCard.jsx";
 export default function LandingPage() {
   const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiGet("/taxa/roots/")
+    apiGet("/taxa/featured/")
       .then((data) => {
-        // Show the top kingdoms/top-level taxa as featured
-        setFeatured(data.slice(0, 6));
+        setFeatured(data);
+        setError(null);
       })
-      .catch(() => setFeatured([]))
+      .catch(() => {
+        // Fall back to roots if featured endpoint fails
+        return apiGet("/taxa/roots/").then((data) => {
+          setFeatured(data.slice(0, 6));
+          setError(null);
+        });
+      })
+      .catch(() => setError("Could not load featured taxa"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -23,7 +31,6 @@ export default function LandingPage() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-primary-800 via-primary-700 to-primary-900 px-4 pb-24 pt-20 text-white">
-        {/* Decorative background */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute -left-20 -top-20 h-80 w-80 rounded-full bg-white/20 blur-3xl" />
           <div className="absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
@@ -79,11 +86,33 @@ export default function LandingPage() {
         {loading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-40 animate-pulse rounded-2xl bg-gray-100"
-              />
+              <div key={i} className="animate-pulse rounded-2xl border border-gray-100 bg-white p-6">
+                <div className="mb-4 h-14 w-14 rounded-xl bg-gray-100" />
+                <div className="h-5 w-32 rounded bg-gray-100" />
+                <div className="mt-2 h-4 w-24 rounded bg-gray-50" />
+                <div className="mt-3 h-6 w-20 rounded-full bg-gray-50" />
+              </div>
             ))}
+          </div>
+        ) : error ? (
+          <div className="py-12 text-center text-gray-500">
+            <p>{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 text-sm text-primary-600 hover:underline"
+            >
+              Try again
+            </button>
+          </div>
+        ) : featured.length === 0 ? (
+          <div className="py-12 text-center text-gray-400">
+            <p>No featured taxa available yet.</p>
+            <button
+              onClick={() => navigate("/explore")}
+              className="mt-4 text-sm text-primary-600 hover:underline"
+            >
+              Browse the full tree instead
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

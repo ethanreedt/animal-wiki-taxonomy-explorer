@@ -61,6 +61,38 @@ class TaxonViewSet(ReadOnlyModelViewSet):
         serializer = TaxonListSerializer(ancestors, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["get"])
+    def featured(self, request):
+        """Return a curated set of interesting taxa for the landing page."""
+        FEATURED_NAMES = [
+            "Mammalia",
+            "Aves",
+            "Reptilia",
+            "Amphibia",
+            "Actinopterygii",
+            "Insecta",
+        ]
+        taxa = (
+            self.get_queryset()
+            .filter(scientific_name__in=FEATURED_NAMES)
+            .order_by("-species_count")
+        )
+        # Prefetch common names
+        taxon_ids = [t.id for t in taxa]
+        common_names = {}
+        vn_qs = (
+            VernacularName.objects.filter(taxon_id__in=taxon_ids, language="eng")
+            .order_by("-is_preferred")
+        )
+        for vn in vn_qs:
+            if vn.taxon_id not in common_names:
+                common_names[vn.taxon_id] = vn.name
+        for taxon in taxa:
+            taxon._prefetched_common_name = common_names.get(taxon.id)
+
+        serializer = TaxonListSerializer(taxa, many=True)
+        return Response(serializer.data)
+
 
 class SearchView(APIView):
     throttle_classes = [ScopedRateThrottle]

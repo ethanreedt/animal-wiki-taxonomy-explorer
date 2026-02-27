@@ -7,7 +7,7 @@ import { useTaxonNavigation } from "../hooks/useTaxonNavigation.js";
 
 export default function ExplorePage() {
   const { goToTaxon } = useTaxonNavigation();
-  const { currentTaxon, navigateToRoot } = useTaxon();
+  const { currentTaxon, ancestors, navigateToRoot } = useTaxon();
   const [, setSearchParams] = useSearchParams();
 
   function handleNavigate(taxonId) {
@@ -19,21 +19,60 @@ export default function ExplorePage() {
     }
   }
 
+  // Build breadcrumb trail
+  const breadcrumbs = ancestors.length > 0
+    ? ancestors.filter((a) => a.id !== currentTaxon?.id)
+    : [];
+
   return (
     <div className="flex h-screen flex-col">
       {/* Header */}
-      <header className="flex items-center gap-4 border-b border-gray-200 bg-white px-4 py-3">
+      <header className="flex items-center gap-4 border-b border-gray-200 bg-white px-4 py-2.5">
         <Link to="/" className="shrink-0">
-          <span className="text-xl font-bold text-primary-700">
+          <span className="text-lg font-bold text-primary-700">
             Animal Wiki
           </span>
         </Link>
         <SearchBar
           maxResults={6}
+          compact
           onSelect={(taxon) => goToTaxon(taxon.id)}
-          className="max-w-md flex-1"
+          className="max-w-sm flex-1"
         />
       </header>
+
+      {/* Breadcrumbs */}
+      {currentTaxon && (
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-gray-100 bg-gray-50/80 px-4 py-1.5 text-xs">
+          <button
+            onClick={() => handleNavigate(null)}
+            className="shrink-0 text-primary-600 hover:underline"
+          >
+            All Life
+          </button>
+          {breadcrumbs.map((ancestor) => (
+            <span key={ancestor.id} className="flex items-center gap-1">
+              <svg className="h-3 w-3 shrink-0 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <button
+                onClick={() => handleNavigate(ancestor.id)}
+                className="shrink-0 text-primary-600 hover:underline"
+              >
+                {ancestor.common_name || ancestor.scientific_name}
+              </button>
+            </span>
+          ))}
+          <span className="flex items-center gap-1">
+            <svg className="h-3 w-3 shrink-0 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span className="shrink-0 font-medium text-gray-700">
+              {currentTaxon.common_name || currentTaxon.scientific_name}
+            </span>
+          </span>
+        </div>
+      )}
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
