@@ -3,7 +3,7 @@ function App() {
     <div>
       <h1>Animal Wiki - Taxonomy Explorer</h1>
       <p>Hello World!</p>
-      <p>Let's Get Started!</p>
+      <p>Let's Get Started!!</p>
     </div>
   );
 }
