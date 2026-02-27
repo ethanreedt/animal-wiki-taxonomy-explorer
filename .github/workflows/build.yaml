@@ -60,9 +60,10 @@ jobs:
           with:
             context: ./frontend
             file: ./frontend/Dockerfile
-            push: true
+            push: ${{ github.event_name == 'push' }}
             tags: |
               ${{ env.FRONTEND_IMAGE }}:sha-${{ github.sha }}
+              ${{ env.FRONTEND_IMAGE }}:latest
             cache-from: type=gha
             cache-to: type=gha,mode=max
 
@@ -87,8 +88,9 @@ jobs:
           with:
             context: ./backend
             file: ./backend/Dockerfile
-            push: true
+            push: ${{ github.event_name == 'push' }}
             tags: |
               ${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}
+              ${{ env.BACKEND_IMAGE }}:latest
             cache-from: type=gha
             cache-to: type=gha,mode=max
