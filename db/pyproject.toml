@@ -1,0 +1,10 @@
+[project]
+name = "animalwiki-db"
+version = "0.1.0"
+description = "Schema management and data loading for Animal Wiki"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.1,<6",
+    "psycopg[binary]>=3.1,<4",
+    "tqdm>=4.66,<5",
+]

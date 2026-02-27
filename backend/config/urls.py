@@ -1,11 +1,6 @@
-from django.http import JsonResponse
-from django.urls import path
-
-
-def hello(request):
-    return JsonResponse({"message": "Hello World from Animal Wiki API!"})
+from django.urls import include, path
 
 
 urlpatterns = [
-    path("api/hello/", hello),
+    path("api/", include("taxonomy.urls")),
 ]
