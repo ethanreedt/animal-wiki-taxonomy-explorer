@@ -1,0 +1,10 @@
+export const NODE_RADIUS = 28;
+export const CENTER_RADIUS = 36;
+export const RING_MIN = 2;
+export const RING_MAX = 8;
+export const CHILD_ORBIT_RADIUS = 220;
+export const ANIMATION_DURATION = 600;
+export const ZOOM_MIN = 0.3;
+export const ZOOM_MAX = 3;
+export const MAX_VISIBLE_CHILDREN = 100;
+export const LABEL_OFFSET = 14;
