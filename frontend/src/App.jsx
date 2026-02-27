@@ -1,10 +1,13 @@
+import { Route, Routes } from "react-router";
+import ExplorePage from "./pages/ExplorePage.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
+
 function App() {
   return (
-    <div>
-      <h1>Animal Wiki - Taxonomy Explorer</h1>
-      <p>Hello World!</p>
-      <p>Let's Get Started!!!</p>
-    </div>
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/explore" element={<ExplorePage />} />
+    </Routes>
   );
 }
 
