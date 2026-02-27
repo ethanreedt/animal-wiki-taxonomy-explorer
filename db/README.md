@@ -101,5 +101,81 @@ Three tables, all prefixed `taxonomy_`:
 | `POSTGRES_PASSWORD` | `password` | Database password |
 | `POSTGRES_HOST` | `localhost` | Database host |
 | `POSTGRES_PORT` | `5432` | Database port |
+| `POSTGRES_SSLMODE` | *(unset)* | Set to `require` for Azure/remote PostgreSQL |
 
 Set these in `.env` (loaded automatically by both Docker Compose and Django settings).
+
+## Migrating to Azure (or any remote PostgreSQL)
+
+The local Docker Compose database is for development. For production, we use Azure Database for PostgreSQL Flexible Server.
+
+### 1. Allowlist PostgreSQL extensions in Azure
+
+Before creating the extensions, they must be allowlisted in the Azure portal:
+
+1. Go to your Flexible Server in the Azure portal
+2. Navigate to **Server parameters** in the left sidebar
+3. Search for `azure.extensions`
+4. Add `LTREE` and `PG_TRGM` to the allowlist
+5. Click **Save** (the server will apply the change without a restart)
+
+### 2. Prepare the Azure database
+
+Connect as the admin user created during provisioning and run:
+
+```sql
+CREATE DATABASE animalwiki;
+CREATE USER animalwiki WITH PASSWORD '<strong_password>';
+GRANT ALL PRIVILEGES ON DATABASE animalwiki TO animalwiki;
+
+-- Connect to the new database
+\c animalwiki
+
+-- Grant schema privileges (PG 15+ requires this explicitly)
+GRANT ALL ON SCHEMA public TO animalwiki;
+
+-- Enable required extensions (allowlisted in step 1)
+CREATE EXTENSION IF NOT EXISTS ltree;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+```
+
+### 3. Dump the local database
+
+```bash
+pg_dump -h localhost -U animalwiki -d animalwiki \
+  -Fc --no-owner --no-acl -f animalwiki.dump
+```
+
+### 4. Restore to Azure
+
+Restore as the `animalwiki` user so it owns the tables directly — no extra grants needed:
+
+```bash
+pg_restore -h animal-wiki-db.postgres.database.azure.com \
+  -U animalwiki -d animalwiki \
+  --no-owner --no-acl --no-comments -j 4 animalwiki.dump
+```
+
+### 5. Test the connection locally
+
+Run the backend against Azure to verify:
+
+```bash
+export POSTGRES_HOST=animal-wiki-db.postgres.database.azure.com
+export POSTGRES_USER=animalwiki
+export POSTGRES_PASSWORD='<your_password>'
+export POSTGRES_SSLMODE=require
+cd backend
+uv run --with-requirements requirements.txt python manage.py runserver --noreload 8000
+```
+
+Note: `--noreload` is required when using `uv run` — the auto-reloader conflicts with uv's ephemeral environment. This is not needed in production (Gunicorn has no reloader).
+
+Then test: `curl http://localhost:8000/api/taxa/roots/`
+
+### Refreshing data
+
+When a new Catalogue of Life release comes out, either:
+
+- **Re-dump/restore**: Reload locally with `load_taxonomy --clear` + `load_vernacular --clear`, then repeat the dump/restore process above.
+- **Run loaders directly against Azure**: Point the `db/` project at Azure via environment variables and re-run the load commands. This is slower over the network but avoids the dump/restore step.

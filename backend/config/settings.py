@@ -44,6 +44,9 @@ REST_FRAMEWORK = {
 
 ROOT_URLCONF = "config.urls"
 
+_sslmode = os.environ.get("POSTGRES_SSLMODE", "")
+_db_options = {"sslmode": _sslmode} if _sslmode else {}
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -52,6 +55,7 @@ DATABASES = {
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "changeme"),
         "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
         "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        "OPTIONS": _db_options,
     }
 }
 
