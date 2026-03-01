@@ -14,9 +14,10 @@ import {
  * ensuring nodes don't overlap (minimum angular gap based on node size).
  */
 function nodesPerRing(ringRadius) {
-  const minGap = (NODE_RADIUS * 2 + 20); // diameter + label space
+  // Each node needs space for circle diameter + label width underneath
+  const minArcLength = NODE_RADIUS * 2 + 40;
   const circumference = 2 * Math.PI * ringRadius;
-  return Math.max(1, Math.floor(circumference / minGap));
+  return Math.max(1, Math.floor(circumference / minArcLength));
 }
 
 export function useRadialLayout(children) {
