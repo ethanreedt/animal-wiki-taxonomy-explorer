@@ -20,9 +20,7 @@ export default function ExplorePage() {
   }
 
   // Build breadcrumb trail
-  const breadcrumbs = ancestors.length > 0
-    ? ancestors.filter((a) => a.id !== currentTaxon?.id)
-    : [];
+  const breadcrumbs = ancestors.filter((a) => a.id !== currentTaxon?.id);
 
   return (
     <div className="flex h-screen flex-col">
@@ -43,31 +41,31 @@ export default function ExplorePage() {
 
       {/* Breadcrumbs */}
       {currentTaxon && (
-        <div className="flex items-center gap-1 overflow-x-auto border-b border-gray-100 bg-gray-50/80 px-4 py-1.5 text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto border-b border-gray-100 bg-gray-50/80 px-4 py-2">
           <button
             onClick={() => handleNavigate(null)}
-            className="shrink-0 text-primary-600 hover:underline"
+            className="shrink-0 rounded-full bg-gray-200/70 px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-300/70"
           >
             All Life
           </button>
           {breadcrumbs.map((ancestor) => (
-            <span key={ancestor.id} className="flex items-center gap-1">
+            <span key={ancestor.id} className="flex items-center gap-1.5">
               <svg className="h-3 w-3 shrink-0 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
               <button
                 onClick={() => handleNavigate(ancestor.id)}
-                className="shrink-0 text-primary-600 hover:underline"
+                className="shrink-0 rounded-full bg-gray-200/70 px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-300/70"
               >
                 {ancestor.common_name || ancestor.scientific_name}
               </button>
             </span>
           ))}
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1.5">
             <svg className="h-3 w-3 shrink-0 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            <span className="shrink-0 font-medium text-gray-700">
+            <span className="shrink-0 rounded-full bg-primary-100 px-3 py-1 text-xs font-semibold text-primary-700">
               {currentTaxon.common_name || currentTaxon.scientific_name}
             </span>
           </span>
@@ -76,13 +74,13 @@ export default function ExplorePage() {
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Tree */}
-        <div className="flex-1">
+        {/* Tree — 60% */}
+        <div className="w-3/5 shrink-0">
           <RadialTree onNavigate={handleNavigate} />
         </div>
 
-        {/* Sidebar */}
-        <div className="hidden w-80 shrink-0 border-l border-gray-200 bg-white md:block lg:w-96">
+        {/* Sidebar — 40% */}
+        <div className="hidden flex-1 border-l border-gray-200 bg-gray-50/50 md:block">
           <InfoSidebar onNavigate={handleNavigate} />
         </div>
       </div>
@@ -97,7 +95,7 @@ export default function ExplorePage() {
 
 function MobileDrawer({ onNavigate }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 max-h-[40vh] overflow-y-auto rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl md:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-40 max-h-[50vh] overflow-y-auto rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl md:hidden">
       <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-gray-300" />
       <InfoSidebar onNavigate={onNavigate} />
     </div>

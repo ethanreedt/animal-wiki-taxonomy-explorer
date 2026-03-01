@@ -1,5 +1,8 @@
 import { useTaxon } from "../context/TaxonContext.jsx";
-import InfoCard from "./InfoCard.jsx";
+import DetailsCard from "./DetailsCard.jsx";
+import QACard from "./QACard.jsx";
+import SummaryCard from "./SummaryCard.jsx";
+import TaxonomyCard from "./TaxonomyCard.jsx";
 
 export default function InfoSidebar({ onNavigate }) {
   const { currentTaxon, ancestors, loading, error } = useTaxon();
@@ -25,34 +28,23 @@ export default function InfoSidebar({ onNavigate }) {
     return (
       <div className="flex h-full items-center justify-center p-6 text-gray-400">
         <p className="text-center">
-          Select a taxon to see its classification
+          Select a taxon to see its details
         </p>
       </div>
     );
   }
 
-  // Build card stack: ancestors + current taxon
-  const cards = [...ancestors];
-  // Don't duplicate if current taxon is already the last ancestor
-  if (
-    cards.length === 0 ||
-    cards[cards.length - 1].id !== currentTaxon.id
-  ) {
-    cards.push(currentTaxon);
-  }
-
   return (
     <div className="h-full overflow-y-auto p-4">
-      <div className="space-y-2">
-        {cards.map((taxon, i) => (
-          <InfoCard
-            key={taxon.id}
-            taxon={taxon}
-            isCurrent={taxon.id === currentTaxon.id}
-            isLast={i === cards.length - 1}
-            onNavigate={onNavigate}
-          />
-        ))}
+      <div className="space-y-3">
+        <SummaryCard taxon={currentTaxon} />
+        <TaxonomyCard
+          ancestors={ancestors}
+          currentTaxon={currentTaxon}
+          onNavigate={onNavigate}
+        />
+        <DetailsCard taxon={currentTaxon} />
+        <QACard taxon={currentTaxon} />
       </div>
     </div>
   );
