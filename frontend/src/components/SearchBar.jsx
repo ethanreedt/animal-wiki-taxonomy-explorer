@@ -104,7 +104,7 @@ export default function SearchBar({ maxResults = 4, onSelect, compact = false, c
           onFocus={() => results.length > 0 && setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder="Search animals, plants, fungi..."
-          className={`w-full rounded-2xl border border-gray-200 bg-white pl-12 pr-4 shadow-sm outline-none transition-shadow focus:border-primary-400 focus:ring-2 focus:ring-primary-200 ${compact ? "py-2.5 text-sm" : "py-4 text-lg"}`}
+          className={`w-full rounded-2xl border border-gray-200 bg-white pl-12 pr-4 text-gray-900 shadow-sm outline-none transition-shadow placeholder:text-gray-400 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 ${compact ? "py-2.5 text-sm" : "py-4 text-lg"}`}
         />
         {loading && (
           <div className="absolute right-4 top-1/2 -translate-y-1/2">
