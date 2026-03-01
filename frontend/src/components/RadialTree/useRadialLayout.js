@@ -1,12 +1,23 @@
 import { useMemo } from "react";
 import { scaleSqrt } from "d3";
 import {
-  CHILD_ORBIT_RADIUS,
+  FIRST_RING_RADIUS,
   MAX_VISIBLE_CHILDREN,
   NODE_RADIUS,
   RING_MAX,
   RING_MIN,
+  RING_SPACING,
 } from "./constants.js";
+
+/**
+ * Compute how many nodes fit in a ring at the given radius,
+ * ensuring nodes don't overlap (minimum angular gap based on node size).
+ */
+function nodesPerRing(ringRadius) {
+  const minGap = (NODE_RADIUS * 2 + 20); // diameter + label space
+  const circumference = 2 * Math.PI * ringRadius;
+  return Math.max(1, Math.floor(circumference / minGap));
+}
 
 export function useRadialLayout(children) {
   return useMemo(() => {
@@ -21,21 +32,38 @@ export function useRadialLayout(children) {
       .domain([0, maxCount])
       .range([RING_MIN, RING_MAX]);
 
-    const count = visible.length;
-    const angleStep = (2 * Math.PI) / Math.max(count, 1);
+    // Distribute nodes across concentric staggered rings
+    const nodes = [];
+    let placed = 0;
+    let ringIndex = 0;
 
-    const nodes = visible.map((child, i) => {
-      const angle = angleStep * i - Math.PI / 2; // Start from top
-      const radius = CHILD_ORBIT_RADIUS;
-      return {
-        ...child,
-        x: Math.cos(angle) * radius,
-        y: Math.sin(angle) * radius,
-        angle,
-        ringWidth: ringScale(child.species_count || 0),
-        nodeRadius: NODE_RADIUS,
-      };
-    });
+    while (placed < visible.length) {
+      const radius = FIRST_RING_RADIUS + ringIndex * RING_SPACING;
+      const capacity = nodesPerRing(radius);
+      const count = Math.min(capacity, visible.length - placed);
+
+      // Stagger odd rings by half a node-gap
+      const staggerOffset = ringIndex % 2 === 1
+        ? Math.PI / capacity
+        : 0;
+
+      for (let i = 0; i < count; i++) {
+        const child = visible[placed + i];
+        const angle = (2 * Math.PI * i) / count - Math.PI / 2 + staggerOffset;
+
+        nodes.push({
+          ...child,
+          x: Math.cos(angle) * radius,
+          y: Math.sin(angle) * radius,
+          angle,
+          ringWidth: ringScale(child.species_count || 0),
+          nodeRadius: NODE_RADIUS,
+        });
+      }
+
+      placed += count;
+      ringIndex++;
+    }
 
     return { nodes, hasMore };
   }, [children]);

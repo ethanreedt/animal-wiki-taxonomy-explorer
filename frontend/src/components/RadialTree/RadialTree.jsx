@@ -1,21 +1,27 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet } from "../../api.js";
 import { useTaxon } from "../../context/TaxonContext.jsx";
-import { CENTER_RADIUS } from "./constants.js";
+import { ANIMATION_DURATION, CENTER_RADIUS, PREFETCH_COUNT } from "./constants.js";
 import TaxonNode from "./TaxonNode.jsx";
 import { useRadialLayout } from "./useRadialLayout.js";
 import { useZoomPan } from "./useZoomPan.js";
+
+// Simple cache for pre-fetched children
+const childrenCache = new Map();
 
 export default function RadialTree({ onNavigate }) {
   const svgRef = useRef(null);
   const contentRef = useRef(null);
   const { currentTaxon, taxonChildren, loading } = useTaxon();
   const { resetView } = useZoomPan(svgRef, contentRef);
-  const { nodes, hasMore } = useRadialLayout(taxonChildren);
 
   // Root-level nodes when no taxon is selected
   const [roots, setRoots] = useState([]);
   const [rootsLoading, setRootsLoading] = useState(false);
+
+  // Transition state
+  const [transitioning, setTransitioning] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
     if (!currentTaxon) {
@@ -27,16 +33,44 @@ export default function RadialTree({ onNavigate }) {
     }
   }, [currentTaxon]);
 
-  // Reset zoom when taxon changes
+  // Reset zoom and transition state when taxon changes
   useEffect(() => {
     resetView();
+    setTransitioning(false);
+    setSelectedId(null);
   }, [currentTaxon, resetView]);
+
+  // Pre-fetch top N children's children after current children load
+  useEffect(() => {
+    if (!taxonChildren || taxonChildren.length === 0) return;
+    const topChildren = taxonChildren.slice(0, PREFETCH_COUNT);
+    topChildren.forEach((child) => {
+      if (!childrenCache.has(child.id)) {
+        apiGet(`/taxa/${child.id}/children/`)
+          .then((data) => childrenCache.set(child.id, data))
+          .catch(() => {}); // silent fail for pre-fetch
+      }
+    });
+  }, [taxonChildren]);
 
   const childNodes = currentTaxon ? taxonChildren : roots;
   const { nodes: displayNodes, hasMore: hasMoreDisplay } =
     useRadialLayout(childNodes);
 
   const isLoading = currentTaxon ? loading : rootsLoading;
+
+  // Handle node click with transition
+  const handleNodeClick = useCallback(
+    (taxon) => {
+      setSelectedId(taxon.id);
+      setTransitioning(true);
+      // Wait for fade-out animation, then navigate
+      setTimeout(() => {
+        onNavigate(taxon.id);
+      }, ANIMATION_DURATION);
+    },
+    [onNavigate]
+  );
 
   return (
     <div className="relative h-full w-full bg-gray-50">
@@ -57,7 +91,11 @@ export default function RadialTree({ onNavigate }) {
                 y2={node.y}
                 stroke="#e5e7eb"
                 strokeWidth={1.5}
-                className="transition-all duration-500"
+                style={{
+                  opacity:
+                    transitioning && node.id !== selectedId ? 0 : 1,
+                  transition: `opacity ${ANIMATION_DURATION}ms ease`,
+                }}
               />
             ))}
 
@@ -70,9 +108,8 @@ export default function RadialTree({ onNavigate }) {
               ringWidth={0}
               nodeRadius={CENTER_RADIUS}
               isCenter
-              isFaded={false}
+              isFaded={transitioning}
               onClick={() => {
-                // Navigate up to parent
                 if (currentTaxon.parent_id) {
                   onNavigate(currentTaxon.parent_id);
                 }
@@ -93,34 +130,59 @@ export default function RadialTree({ onNavigate }) {
 
           {/* Child nodes */}
           {!isLoading &&
-            displayNodes.map((node) => (
-              <TaxonNode
-                key={node.id}
-                taxon={node}
-                x={node.x}
-                y={node.y}
-                ringWidth={node.ringWidth}
-                nodeRadius={node.nodeRadius}
-                onClick={(t) => onNavigate(t.id)}
-              />
-            ))}
+            displayNodes.map((node) => {
+              const isSelected = node.id === selectedId;
+              const isFading = transitioning && !isSelected;
+
+              return (
+                <TaxonNode
+                  key={node.id}
+                  taxon={node}
+                  x={node.x}
+                  y={node.y}
+                  ringWidth={node.ringWidth}
+                  nodeRadius={node.nodeRadius}
+                  isFaded={isFading}
+                  onClick={handleNodeClick}
+                  style={{
+                    transition: `opacity ${ANIMATION_DURATION}ms ease, transform ${ANIMATION_DURATION}ms ease`,
+                  }}
+                />
+              );
+            })}
 
           {/* Loading indicator */}
           {isLoading && (
-            <text
-              textAnchor="middle"
-              dy={4}
-              className="fill-gray-400 text-sm"
-            >
-              Loading...
-            </text>
+            <g>
+              <circle r={20} fill="none" stroke="#d1d5db" strokeWidth={2}>
+                <animateTransform
+                  attributeName="transform"
+                  type="rotate"
+                  from="0"
+                  to="360"
+                  dur="1s"
+                  repeatCount="indefinite"
+                />
+              </circle>
+              <text
+                textAnchor="middle"
+                dy={40}
+                className="fill-gray-400 text-xs"
+              >
+                Loading...
+              </text>
+            </g>
           )}
 
           {/* "More" indicator */}
-          {hasMoreDisplay && (
+          {hasMoreDisplay && !transitioning && (
             <text
               textAnchor="middle"
-              y={300}
+              y={
+                displayNodes.length > 0
+                  ? Math.max(...displayNodes.map((n) => Math.abs(n.y))) + 60
+                  : 200
+              }
               className="fill-gray-400 text-xs"
             >
               + {childNodes.length - displayNodes.length} more
