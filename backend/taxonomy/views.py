@@ -15,6 +15,24 @@ from .serializers import (
 )
 
 
+def _prefetch_common_names(taxa):
+    """Batch-load preferred English common names onto a list of taxa."""
+    taxon_ids = [t.id for t in taxa]
+    if not taxon_ids:
+        return taxa
+    common_names = {}
+    vn_qs = (
+        VernacularName.objects.filter(taxon_id__in=taxon_ids, language="eng")
+        .order_by("-is_preferred")
+    )
+    for vn in vn_qs:
+        if vn.taxon_id not in common_names:
+            common_names[vn.taxon_id] = vn.name
+    for taxon in taxa:
+        taxon._prefetched_common_name = common_names.get(taxon.id)
+    return taxa
+
+
 class TaxonViewSet(ReadOnlyModelViewSet):
     queryset = Taxon.objects.filter(status="accepted")
 
@@ -31,18 +49,24 @@ class TaxonViewSet(ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def roots(self, request):
-        roots = self.get_queryset().filter(parent__isnull=True).order_by("-species_count")
+        roots = list(
+            self.get_queryset()
+            .filter(parent__isnull=True)
+            .order_by("-species_count")
+        )
+        _prefetch_common_names(roots)
         serializer = TaxonListSerializer(roots, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=["get"])
     def children(self, request, pk=None):
         taxon = self.get_object()
-        children = (
+        children = list(
             self.get_queryset()
             .filter(parent=taxon)
             .order_by("-species_count")[:200]
         )
+        _prefetch_common_names(children)
         serializer = TaxonListSerializer(children, many=True)
         return Response(serializer.data)
 
@@ -53,11 +77,12 @@ class TaxonViewSet(ReadOnlyModelViewSet):
             return Response([])
 
         path_ids = taxon.path.split(".")
-        ancestors = (
+        ancestors = list(
             self.get_queryset()
             .filter(col_id__in=path_ids)
             .order_by("path")
         )
+        _prefetch_common_names(ancestors)
         serializer = TaxonListSerializer(ancestors, many=True)
         return Response(serializer.data)
 
@@ -72,24 +97,12 @@ class TaxonViewSet(ReadOnlyModelViewSet):
             "Actinopterygii",
             "Insecta",
         ]
-        taxa = (
+        taxa = list(
             self.get_queryset()
             .filter(scientific_name__in=FEATURED_NAMES)
             .order_by("-species_count")
         )
-        # Prefetch common names
-        taxon_ids = [t.id for t in taxa]
-        common_names = {}
-        vn_qs = (
-            VernacularName.objects.filter(taxon_id__in=taxon_ids, language="eng")
-            .order_by("-is_preferred")
-        )
-        for vn in vn_qs:
-            if vn.taxon_id not in common_names:
-                common_names[vn.taxon_id] = vn.name
-        for taxon in taxa:
-            taxon._prefetched_common_name = common_names.get(taxon.id)
-
+        _prefetch_common_names(taxa)
         serializer = TaxonListSerializer(taxa, many=True)
         return Response(serializer.data)
 
@@ -137,21 +150,6 @@ class SearchView(APIView):
             )
             results.extend(trigram_results)
 
-        # Prefetch common names for all results
-        taxon_ids = [t.id for t in results]
-        common_names = {}
-        vn_qs = (
-            VernacularName.objects.filter(
-                taxon_id__in=taxon_ids, language="eng"
-            )
-            .order_by("-is_preferred")
-        )
-        for vn in vn_qs:
-            if vn.taxon_id not in common_names:
-                common_names[vn.taxon_id] = vn.name
-
-        for taxon in results:
-            taxon._prefetched_common_name = common_names.get(taxon.id)
-
+        _prefetch_common_names(results)
         serializer = SearchResultSerializer(results, many=True)
         return Response(serializer.data)
