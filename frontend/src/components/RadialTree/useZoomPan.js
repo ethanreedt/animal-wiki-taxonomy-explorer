@@ -31,17 +31,16 @@ export function useZoomPan(svgRef, contentRef) {
     };
   }, [svgRef, contentRef]);
 
-  const resetView = useCallback(() => {
+  const resetView = useCallback((animate = false) => {
     if (!svgRef.current || !zoomBehavior.current) return;
     const svg = select(svgRef.current);
     const { width, height } = svgRef.current.getBoundingClientRect();
-    svg
-      .transition()
-      .duration(400)
-      .call(
-        zoomBehavior.current.transform,
-        zoomIdentity.translate(width / 2, height / 2)
-      );
+    const transform = zoomIdentity.translate(width / 2, height / 2);
+    if (animate) {
+      svg.transition().duration(400).call(zoomBehavior.current.transform, transform);
+    } else {
+      svg.call(zoomBehavior.current.transform, transform);
+    }
   }, [svgRef]);
 
   const panTo = useCallback((x, y) => {

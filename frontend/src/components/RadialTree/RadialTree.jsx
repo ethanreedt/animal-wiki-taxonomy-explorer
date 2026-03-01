@@ -199,7 +199,7 @@ export default function RadialTree({ onNavigate }) {
       {/* Zoom controls */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-1">
         <button
-          onClick={resetView}
+          onClick={() => resetView(true)}
           className="rounded-lg bg-white p-2 shadow-md transition-colors hover:bg-gray-50"
           title="Reset view"
         >
