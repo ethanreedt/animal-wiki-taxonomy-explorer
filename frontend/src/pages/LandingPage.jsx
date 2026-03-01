@@ -73,7 +73,7 @@ export default function LandingPage() {
       </div>
 
       {/* Featured Taxa */}
-      <div className="mx-auto -mt-12 max-w-6xl px-4 pb-20">
+      <div className="mx-auto max-w-6xl px-4 pb-20 pt-10">
         <div className="mb-8 text-center">
           <h2 className="text-2xl font-bold text-gray-900">
             Featured Groups
