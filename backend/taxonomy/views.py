@@ -21,48 +21,69 @@ _summary_cache = {}
 _CACHE_TTL = 3600  # 1 hour
 
 
-def _get_wiki_summary(scientific_name):
-    """Fetch Wikipedia extract for a scientific name, with caching."""
-    now = time.time()
-    if scientific_name in _summary_cache:
-        cached, ts = _summary_cache[scientific_name]
-        if now - ts < _CACHE_TTL:
-            return cached
-
+def _fetch_wiki_extract(title):
+    """Fetch a single Wikipedia extract by exact title."""
     params = {
         "action": "query",
-        "titles": scientific_name,
-        "prop": "extracts",
+        "titles": title,
+        "prop": "extracts|categories",
         "exintro": True,
         "explaintext": True,
         "redirects": 1,
+        "cllimit": 5,
         "format": "json",
     }
+    resp = http_requests.get(
+        WIKI_API,
+        params=params,
+        timeout=5,
+        headers={"User-Agent": "AnimalWiki/1.0"},
+    )
+    resp.raise_for_status()
+    pages = resp.json().get("query", {}).get("pages", {})
+    for page in pages.values():
+        if "missing" in page or "extract" not in page:
+            continue
+        extract = page["extract"]
+        # Detect disambiguation pages
+        cats = [c.get("title", "") for c in page.get("categories", [])]
+        is_disambig = any("disambiguation" in c.lower() for c in cats)
+        if is_disambig or extract.strip().endswith("may refer to:"):
+            return None  # signal to try alternate title
+        return extract
+    return None
+
+
+def _get_wiki_summary(scientific_name, rank=None):
+    """Fetch Wikipedia extract for a scientific name, with caching and disambiguation handling."""
+    cache_key = scientific_name
+    now = time.time()
+    if cache_key in _summary_cache:
+        cached, ts = _summary_cache[cache_key]
+        if now - ts < _CACHE_TTL:
+            return cached
+
     try:
-        resp = http_requests.get(
-            WIKI_API,
-            params=params,
-            timeout=5,
-            headers={"User-Agent": "AnimalWiki/1.0"},
-        )
-        resp.raise_for_status()
-        pages = resp.json().get("query", {}).get("pages", {})
-        for page in pages.values():
-            if "missing" not in page and "extract" in page:
-                extract = page["extract"]
-                # Truncate to ~500 chars at sentence boundary
-                if len(extract) > 500:
-                    cut = extract[:500].rfind(". ")
-                    if cut > 200:
-                        extract = extract[: cut + 1]
-                result = {"summary": extract, "source": "wikipedia"}
-                _summary_cache[scientific_name] = (result, now)
-                return result
+        extract = _fetch_wiki_extract(scientific_name)
+
+        # If disambiguation or missing, try with rank qualifier
+        if extract is None and rank:
+            extract = _fetch_wiki_extract(f"{scientific_name} ({rank})")
+
+        if extract:
+            # Truncate to ~500 chars at sentence boundary
+            if len(extract) > 500:
+                cut = extract[:500].rfind(". ")
+                if cut > 200:
+                    extract = extract[: cut + 1]
+            result = {"summary": extract, "source": "wikipedia"}
+            _summary_cache[cache_key] = (result, now)
+            return result
     except Exception as e:
         logger.warning("Wikipedia fetch failed for %s: %s", scientific_name, e)
 
     result = {"summary": None, "source": None}
-    _summary_cache[scientific_name] = (result, now)
+    _summary_cache[cache_key] = (result, now)
     return result
 
 from .models import Taxon, TaxonImage, VernacularName
@@ -163,7 +184,7 @@ class TaxonViewSet(ReadOnlyModelViewSet):
     def summary(self, request, pk=None):
         """Fetch Wikipedia summary for a taxon."""
         taxon = self.get_object()
-        result = _get_wiki_summary(taxon.scientific_name)
+        result = _get_wiki_summary(taxon.scientific_name, rank=taxon.rank)
         return Response(result)
 
     @action(detail=False, methods=["get"])

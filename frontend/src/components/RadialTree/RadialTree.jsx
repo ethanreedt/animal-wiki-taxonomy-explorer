@@ -13,7 +13,7 @@ export default function RadialTree({ onNavigate }) {
   const svgRef = useRef(null);
   const contentRef = useRef(null);
   const { currentTaxon, taxonChildren, loading } = useTaxon();
-  const { resetView } = useZoomPan(svgRef, contentRef);
+  const { resetView, panTo } = useZoomPan(svgRef, contentRef);
 
   // Root-level nodes when no taxon is selected
   const [roots, setRoots] = useState([]);
@@ -64,12 +64,17 @@ export default function RadialTree({ onNavigate }) {
     (taxon) => {
       setSelectedId(taxon.id);
       setTransitioning(true);
+      // Pan to center on the clicked node while siblings fade out
+      const node = displayNodes.find((n) => n.id === taxon.id);
+      if (node) {
+        panTo(node.x, node.y);
+      }
       // Wait for fade-out animation, then navigate
       setTimeout(() => {
         onNavigate(taxon.id);
       }, ANIMATION_DURATION);
     },
-    [onNavigate]
+    [onNavigate, displayNodes, panTo]
   );
 
   return (

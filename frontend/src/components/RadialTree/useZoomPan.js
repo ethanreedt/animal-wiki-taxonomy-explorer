@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { select, zoom, zoomIdentity } from "d3";
-import { ZOOM_MAX, ZOOM_MIN } from "./constants.js";
+import { ANIMATION_DURATION, ZOOM_MAX, ZOOM_MIN } from "./constants.js";
 
 export function useZoomPan(svgRef, contentRef) {
   const zoomBehavior = useRef(null);
@@ -31,7 +31,7 @@ export function useZoomPan(svgRef, contentRef) {
     };
   }, [svgRef, contentRef]);
 
-  function resetView() {
+  const resetView = useCallback(() => {
     if (!svgRef.current || !zoomBehavior.current) return;
     const svg = select(svgRef.current);
     const { width, height } = svgRef.current.getBoundingClientRect();
@@ -42,7 +42,20 @@ export function useZoomPan(svgRef, contentRef) {
         zoomBehavior.current.transform,
         zoomIdentity.translate(width / 2, height / 2)
       );
-  }
+  }, [svgRef]);
 
-  return { resetView };
+  const panTo = useCallback((x, y) => {
+    if (!svgRef.current || !zoomBehavior.current) return;
+    const svg = select(svgRef.current);
+    const { width, height } = svgRef.current.getBoundingClientRect();
+    svg
+      .transition()
+      .duration(ANIMATION_DURATION)
+      .call(
+        zoomBehavior.current.transform,
+        zoomIdentity.translate(width / 2 - x, height / 2 - y)
+      );
+  }, [svgRef]);
+
+  return { resetView, panTo };
 }
