@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Taxon, VernacularName
+from .models import Taxon, TaxonImage, VernacularName
 
 
 class VernacularNameSerializer(serializers.ModelSerializer):
@@ -9,8 +9,15 @@ class VernacularNameSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "language", "is_preferred"]
 
 
+class TaxonImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaxonImage
+        fields = ["id", "url", "thumbnail_url", "license", "source"]
+
+
 class TaxonListSerializer(serializers.ModelSerializer):
     common_name = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Taxon
@@ -23,6 +30,7 @@ class TaxonListSerializer(serializers.ModelSerializer):
             "extinct",
             "iucn_status",
             "common_name",
+            "image_url",
         ]
 
     def get_common_name(self, obj):
@@ -35,9 +43,18 @@ class TaxonListSerializer(serializers.ModelSerializer):
             vn = obj.vernacular_names.filter(language="eng").first()
         return vn.name if vn else None
 
+    def get_image_url(self, obj):
+        if hasattr(obj, "_prefetched_image_url"):
+            return obj._prefetched_image_url
+        img = obj.images.filter(is_primary=True).first()
+        if not img:
+            img = obj.images.first()
+        return img.thumbnail_url or img.url if img else None
+
 
 class TaxonDetailSerializer(serializers.ModelSerializer):
     vernacular_names = VernacularNameSerializer(many=True, read_only=True)
+    images = TaxonImageSerializer(many=True, read_only=True)
     common_name = serializers.SerializerMethodField()
     parent_id = serializers.PrimaryKeyRelatedField(
         source="parent", read_only=True
@@ -64,6 +81,7 @@ class TaxonDetailSerializer(serializers.ModelSerializer):
             "parent_id",
             "common_name",
             "vernacular_names",
+            "images",
         ]
 
     def get_common_name(self, obj):
@@ -78,6 +96,7 @@ class TaxonDetailSerializer(serializers.ModelSerializer):
 
 class SearchResultSerializer(serializers.ModelSerializer):
     common_name = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
     rank_display = serializers.CharField(source="get_rank_display", read_only=True)
 
     class Meta:
@@ -90,6 +109,7 @@ class SearchResultSerializer(serializers.ModelSerializer):
             "rank_display",
             "species_count",
             "common_name",
+            "image_url",
         ]
 
     def get_common_name(self, obj):
@@ -101,3 +121,11 @@ class SearchResultSerializer(serializers.ModelSerializer):
         if not vn:
             vn = obj.vernacular_names.filter(language="eng").first()
         return vn.name if vn else None
+
+    def get_image_url(self, obj):
+        if hasattr(obj, "_prefetched_image_url"):
+            return obj._prefetched_image_url
+        img = obj.images.filter(is_primary=True).first()
+        if not img:
+            img = obj.images.first()
+        return img.thumbnail_url or img.url if img else None

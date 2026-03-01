@@ -7,7 +7,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from .models import Taxon, VernacularName
+from .models import Taxon, TaxonImage, VernacularName
 from .serializers import (
     SearchResultSerializer,
     TaxonDetailSerializer,
@@ -15,11 +15,13 @@ from .serializers import (
 )
 
 
-def _prefetch_common_names(taxa):
-    """Batch-load preferred English common names onto a list of taxa."""
+def _prefetch_list_fields(taxa):
+    """Batch-load common names and image URLs onto a list of taxa."""
     taxon_ids = [t.id for t in taxa]
     if not taxon_ids:
         return taxa
+
+    # Common names
     common_names = {}
     vn_qs = (
         VernacularName.objects.filter(taxon_id__in=taxon_ids, language="eng")
@@ -28,8 +30,21 @@ def _prefetch_common_names(taxa):
     for vn in vn_qs:
         if vn.taxon_id not in common_names:
             common_names[vn.taxon_id] = vn.name
+
+    # Images (prefer primary, then any)
+    image_urls = {}
+    img_qs = (
+        TaxonImage.objects.filter(taxon_id__in=taxon_ids)
+        .order_by("-is_primary")
+    )
+    for img in img_qs:
+        if img.taxon_id not in image_urls:
+            image_urls[img.taxon_id] = img.thumbnail_url or img.url
+
     for taxon in taxa:
         taxon._prefetched_common_name = common_names.get(taxon.id)
+        taxon._prefetched_image_url = image_urls.get(taxon.id)
+
     return taxa
 
 
@@ -44,7 +59,7 @@ class TaxonViewSet(ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         if self.action == "retrieve":
-            qs = qs.prefetch_related("vernacular_names")
+            qs = qs.prefetch_related("vernacular_names", "images")
         return qs
 
     @action(detail=False, methods=["get"])
@@ -54,7 +69,7 @@ class TaxonViewSet(ReadOnlyModelViewSet):
             .filter(parent__isnull=True)
             .order_by("-species_count")
         )
-        _prefetch_common_names(roots)
+        _prefetch_list_fields(roots)
         serializer = TaxonListSerializer(roots, many=True)
         return Response(serializer.data)
 
@@ -66,7 +81,7 @@ class TaxonViewSet(ReadOnlyModelViewSet):
             .filter(parent=taxon)
             .order_by("-species_count")[:200]
         )
-        _prefetch_common_names(children)
+        _prefetch_list_fields(children)
         serializer = TaxonListSerializer(children, many=True)
         return Response(serializer.data)
 
@@ -82,7 +97,7 @@ class TaxonViewSet(ReadOnlyModelViewSet):
             .filter(col_id__in=path_ids)
             .order_by("path")
         )
-        _prefetch_common_names(ancestors)
+        _prefetch_list_fields(ancestors)
         serializer = TaxonListSerializer(ancestors, many=True)
         return Response(serializer.data)
 
@@ -102,7 +117,7 @@ class TaxonViewSet(ReadOnlyModelViewSet):
             .filter(scientific_name__in=FEATURED_NAMES)
             .order_by("-species_count")
         )
-        _prefetch_common_names(taxa)
+        _prefetch_list_fields(taxa)
         serializer = TaxonListSerializer(taxa, many=True)
         return Response(serializer.data)
 
@@ -150,6 +165,6 @@ class SearchView(APIView):
             )
             results.extend(trigram_results)
 
-        _prefetch_common_names(results)
+        _prefetch_list_fields(results)
         serializer = SearchResultSerializer(results, many=True)
         return Response(serializer.data)

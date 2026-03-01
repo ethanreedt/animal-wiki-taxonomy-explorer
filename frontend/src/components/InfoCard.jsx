@@ -87,6 +87,18 @@ export default function InfoCard({ taxon, isCurrent, isLast, onNavigate }) {
       {/* Expanded content */}
       {expanded && isCurrent && (
         <div className="border-t border-gray-50 px-4 pb-4 pt-3">
+          {/* Image */}
+          {(taxon.image_url || (taxon.images && taxon.images.length > 0)) && (
+            <div className="mb-3 overflow-hidden rounded-lg">
+              <img
+                src={taxon.image_url || taxon.images[0].thumbnail_url || taxon.images[0].url}
+                alt={taxon.scientific_name}
+                className="h-32 w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          )}
+
           {taxon.species_count > 0 && (
             <div className="mb-3 flex items-center gap-2">
               <span className="text-sm text-gray-500">Species:</span>
