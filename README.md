@@ -28,37 +28,8 @@ An interactive web app for exploring the biological tree of life — over 4.5 mi
 backend/          Django API (managed=False read-only models)
 db/               Database project (schema, migrations, data loaders)
 frontend/         React SPA (Vite dev server, nginx in prod)
-k8s/              Kubernetes manifests
+docs/             Project documentation
 .github/          CI/CD workflows
-```
-
-## Local Development
-
-### Database
-
-```bash
-cd db/
-docker compose up -d          # PostgreSQL 16
-uv sync                       # install Python deps
-uv run python manage.py migrate
-uv run python manage.py load_taxonomy
-uv run python manage.py load_vernacular
-```
-
-### Backend
-
-```bash
-cd backend/
-pip install -r requirements.txt
-python manage.py runserver     # localhost:8000
-```
-
-### Frontend
-
-```bash
-cd frontend/
-npm install
-npm run dev                    # localhost:3000 (proxies /api to :8000)
 ```
 
 ## API Endpoints
