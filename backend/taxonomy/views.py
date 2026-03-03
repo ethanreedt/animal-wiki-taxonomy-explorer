@@ -208,6 +208,32 @@ class TaxonViewSet(ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 
+class QuizView(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "quiz"
+
+    def get(self, request):
+        from .quiz import generate_question
+
+        difficulty = request.query_params.get("difficulty", "medium")
+        if difficulty not in ("easy", "medium", "hard"):
+            return Response(
+                {"detail": "difficulty must be easy, medium, or hard."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        question_type = request.query_params.get("type")
+        question = generate_question(difficulty, question_type)
+
+        if question is None:
+            return Response(
+                {"detail": "Could not generate a question. Try again."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return Response(question)
+
+
 class SearchView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "search"

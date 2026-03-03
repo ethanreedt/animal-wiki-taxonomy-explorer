@@ -38,6 +38,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "120/minute",
         "search": "60/minute",
+        "quiz": "60/minute",
     },
     "UNAUTHENTICATED_USER": None,
 }
