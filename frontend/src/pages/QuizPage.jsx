@@ -137,13 +137,6 @@ export default function QuizPage() {
     loadQuestion();
   };
 
-  // Check game over after lives update
-  useEffect(() => {
-    if (phase === "review" && lives <= 0) {
-      // Will transition to gameover on "Next" click
-    }
-  }, [lives, phase]);
-
   const handlePlayAgain = () => {
     setPhase("menu");
   };
@@ -174,7 +167,7 @@ export default function QuizPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-8">
+      <main className={`mx-auto max-w-4xl px-4 py-8 ${phase === "menu" || phase === "gameover" ? "flex min-h-[calc(100vh-57px)] items-start justify-center pt-12 sm:pt-16" : ""}`}>
         {phase === "menu" && (
           <QuizMenu
             difficulty={difficulty}
