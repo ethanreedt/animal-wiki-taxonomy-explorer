@@ -20,7 +20,7 @@ An interactive web app for exploring the biological tree of life — over 4.5 mi
 | Backend | Django 5.1, Django REST Framework, Gunicorn |
 | Database | PostgreSQL 16 (ltree + pg_trgm extensions) |
 | Data | Catalogue of Life — ColDP format via ChecklistBank |
-| Infra | GitHub Actions, GHCR, AKS (GitOps — push to main auto-deploys) |
+| Infra | GitHub Actions, GHCR, AKS + EKS + GKS (GitOps — push to main auto-deploys) |
 
 ## Project Structure
 
