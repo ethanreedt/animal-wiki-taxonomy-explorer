@@ -145,7 +145,7 @@ class TaxonViewSet(ReadOnlyModelViewSet):
     def roots(self, request):
         roots = list(
             self.get_queryset()
-            .filter(parent__isnull=True)
+            .filter(parent__isnull=True, rank__in=["domain", "unranked"])
             .order_by("-species_count")
         )
         _prefetch_list_fields(roots)
