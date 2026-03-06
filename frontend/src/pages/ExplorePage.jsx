@@ -74,8 +74,8 @@ export default function ExplorePage() {
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Tree — 60% */}
-        <div className="w-3/5 shrink-0">
+        {/* Tree — full on mobile, 60% on desktop */}
+        <div className="w-full shrink-0 md:w-3/5">
           <RadialTree onNavigate={handleNavigate} />
         </div>
 
